@@ -6,19 +6,30 @@ pipeline {
                  git branch: 'main', url: 'https://github.com/Salunkh/Jenkins_test.git'
             }
         }
-        stage('Install dependencies') {
+        stage('Setup Python Env') {
             steps {
-                sh 'pip install -r requirements.txt'
+                sh '''
+                python3 -m venv venv
+                source venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
             }
         }
         stage('Run tests') {
             steps {
-                sh 'pytest || true'   // add tests in later versions
+                sh '''
+                source venv/bin/activate
+                pytest || true
+                '''
             }
         }
         stage('Run Flask App') {
             steps {
-                sh 'nohup python app.py &'
+                sh '''
+                source venv/bin/activate
+                nohup python app.py &
+                '''
             }
         }
     }
