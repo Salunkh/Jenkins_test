@@ -2,8 +2,8 @@ pipeline {
     agent any
     stages {
         stage('Checkout') {
-            steps {
-                git 'https://github.com/Salunkh/Jenkins_test.git'
+            steps  {
+                 git branch: 'main', url: 'https://github.com/Salunkh/Jenkins_test.git'
             }
         }
         stage('Install dependencies') {
