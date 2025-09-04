@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PATH+EXTRA = "/usr/bin:/opt/homebrew/bin"
+        PATH = "/usr/bin:/opt/homebrew/bin:${env.PATH}"
         VENV_DIR = "${WORKSPACE}/venv"
     }
 
