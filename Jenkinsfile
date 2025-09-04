@@ -4,7 +4,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/Salunkh/Jenkins_test.git'
+                git branch: 'custom', url: 'https://github.com/Salunkh/Jenkins_test.git'
             }
         }
 
