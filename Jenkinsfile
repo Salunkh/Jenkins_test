@@ -1,14 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        WORKSPACE_DIR = "${env.WORKSPACE}"
-    }
-
     stages {
 
         stage('Checkout') {
             steps {
+                // Pull your code from GitHub
                 git branch: 'main', url: 'https://github.com/Salunkh/Jenkins_test.git'
             }
         }
@@ -16,16 +13,18 @@ pipeline {
         stage('Setup Python Env') {
             steps {
                 sh '''
-                # Create virtual environment
+                # Create a fresh virtual environment in the workspace
                 python3 -m venv venv
 
-                # Activate virtualenv
-                source venv/bin/activate
+                # Activate it (use POSIX '.' for portability)
+                . venv/bin/activate
 
                 # Upgrade pip and install dependencies
                 pip install --upgrade pip
                 pip install -r requirements.txt
-                pip install pytest flask
+
+                # Install test tools (dev dependency)
+                pip install pytest
                 '''
             }
         }
@@ -33,27 +32,48 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                # Activate virtualenv
-                source venv/bin/activate
-
-                # Run tests (optional)
-                pytest || true
+                . venv/bin/activate
+                # Run pytest quietly; fail the build if tests fail
+                pytest -q
                 '''
             }
         }
 
-        stage('Run Flask App') {
+        stage('Deploy (Run Flask)') {
             steps {
                 sh '''
-                # Activate virtualenv
-                source venv/bin/activate
+                . venv/bin/activate
 
-                # Stop old Flask process if exists
-                pkill -f "python app.py" || true
+                # Stop an older instance if it exists (using saved PID)
+                if [ -f flask.pid ]; then
+                  if kill -0 $(cat flask.pid) 2>/dev/null; then
+                    echo "Stopping previous Flask process $(cat flask.pid)"
+                    kill $(cat flask.pid) || true
+                    # Give it a moment, force kill if still alive
+                    sleep 1
+                    kill -9 $(cat flask.pid) 2>/dev/null || true
+                  fi
+                  rm -f flask.pid
+                fi
 
-                # Run Flask app in background
+                # Start Flask in the background; capture logs and PID
                 nohup python app.py > flask.log 2>&1 &
-                echo "Flask app started. Access it at http://localhost:5000"
+                echo $! > flask.pid
+                echo "Started Flask with PID $(cat flask.pid)"
+
+                # Wait until the app is responsive (up to ~15s)
+                for i in $(seq 1 15); do
+                  if curl -fsS http://localhost:5000/ >/dev/null; then
+                    echo "Flask is up at http://localhost:5000"
+                    exit 0
+                  fi
+                  echo "Waiting for Flask to start... ($i/15)"
+                  sleep 1
+                done
+
+                echo "ERROR: Flask did not start in time. Recent log output:"
+                tail -n +1 flask.log || true
+                exit 1
                 '''
             }
         }
@@ -61,7 +81,10 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline finished. Flask logs are in ${WORKSPACE_DIR}/flask.log"
+            echo "Build done. Logs live at: ${env.WORKSPACE}/flask.log"
+        }
+        failure {
+            echo "Build failed. Check ${env.WORKSPACE}/flask.log for details."
         }
     }
 }
