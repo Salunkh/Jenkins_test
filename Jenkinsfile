@@ -11,8 +11,11 @@ pipeline {
         stage('Setup Python Env') {
             steps {
                 sh '''
+                # Create virtual environment
                 python3 -m venv venv
-                . venv/bin/activate
+                source venv/bin/activate
+                
+                # Upgrade pip and install dependencies
                 pip install --upgrade pip
                 pip install -r requirements.txt
                 pip install pytest flask
@@ -23,7 +26,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                . venv/bin/activate
+                source venv/bin/activate
                 pytest || true
                 '''
             }
@@ -32,8 +35,15 @@ pipeline {
         stage('Run Flask App') {
             steps {
                 sh '''
-                . venv/bin/activate
-                nohup python app.py > flask.log 2>&1 &
+                source venv/bin/activate
+
+                # Kill old Flask tmux session if exists
+                tmux kill-session -t flask || true
+
+                # Start Flask in detached tmux session
+                tmux new-session -d -s flask 'python app.py'
+
+                echo "Flask app started in tmux session 'flask'. Access it at http://localhost:5000"
                 '''
             }
         }
