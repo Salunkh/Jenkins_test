@@ -1,15 +1,18 @@
 pipeline {
     agent any
+
     environment {
-        PATH = "/usr/bin:/opt/homebrew/bin:$PATH"
+        PATH+EXTRA = "/usr/bin:/opt/homebrew/bin"
         VENV_DIR = "${WORKSPACE}/venv"
     }
+
     stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/Salunkh/Jenkins_test.git'
             }
         }
+
         stage('Setup Python Env') {
             steps {
                 sh '''
@@ -20,6 +23,7 @@ pipeline {
                 '''
             }
         }
+
         stage('Run Tests') {
             steps {
                 sh '''
@@ -28,11 +32,13 @@ pipeline {
                 '''
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 sh 'docker build -t my-flask-app .'
             }
         }
+
         stage('Run Flask in Docker') {
             steps {
                 sh '''
