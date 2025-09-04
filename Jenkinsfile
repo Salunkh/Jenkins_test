@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_PATH = "/opt/homebrew/bin/docker"  // absolute path to Docker
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -8,39 +12,33 @@ pipeline {
             }
         }
 
-        stage('Setup Python Env') {
+        stage('Build Docker Image') {
             steps {
                 sh '''
-                python3 -m venv venv
-                source venv/bin/activate
-                pip install --upgrade pip
-                pip install -r requirements.txt
-                pip install pytest flask
+                ${DOCKER_PATH} build -t my-flask-app .
                 '''
             }
         }
 
-        stage('Run Tests') {
+        stage('Run Flask in Docker') {
             steps {
                 sh '''
-                source venv/bin/activate
-                pytest || true
+                # Stop old container if exists
+                ${DOCKER_PATH} rm -f my-flask-container || true
+
+                # Run new container in detached mode, map port 5000
+                ${DOCKER_PATH} run -d --name my-flask-container -p 5000:5000 my-flask-app
+
+                echo "Flask app is running in Docker container. Access it at http://localhost:5000"
                 '''
             }
         }
 
-        stage('Run Flask App') {
+        stage('Run Tests (Optional)') {
             steps {
                 sh '''
-                source venv/bin/activate
-
-                # Kill old Flask tmux session if exists
-                /opt/homebrew/bin/tmux kill-session -t flask || true
-
-                # Start Flask in detached tmux session using absolute path
-                /opt/homebrew/bin/tmux new-session -d -s flask 'python app.py'
-
-                echo "Flask app started in tmux session 'flask'. Access it at http://localhost:5000"
+                # Run tests inside Docker container
+                ${DOCKER_PATH} exec my-flask-container pytest || true
                 '''
             }
         }
