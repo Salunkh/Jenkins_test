@@ -10,16 +10,16 @@ pipeline {
             steps {
                 sh '''
                 python3 -m venv venv
-                source venv/bin/activate
-                pip3 install --upgrade pip
-                pip3 install -r requirements.txt
+                . venv/bin/activate
+                pip install --upgrade pip
+                pip install -r requirements.txt
                 '''
             }
         }
         stage('Run tests') {
             steps {
                 sh '''
-                source venv/bin/activate
+                . venv/bin/activate
                 pytest || true
                 '''
             }
@@ -27,7 +27,7 @@ pipeline {
         stage('Run Flask App') {
             steps {
                 sh '''
-                source venv/bin/activate
+                . venv/bin/activate
                 nohup python app.py &
                 '''
             }
