@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        PATH = "/usr/bin:/opt/homebrew/bin:${env.PATH}"
         VENV_DIR = "${WORKSPACE}/venv"
+        PATH = "/usr/bin:/opt/homebrew/bin:${env.PATH}"
     }
 
     stages {
@@ -20,6 +20,7 @@ pipeline {
                 . $VENV_DIR/bin/activate
                 pip install --upgrade pip
                 pip install -r requirements.txt
+                pip install pytest flask
                 '''
             }
         }
@@ -33,18 +34,11 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t my-flask-app .'
-            }
-        }
-
-        stage('Run Flask in Docker') {
+        stage('Run Flask App') {
             steps {
                 sh '''
-                docker stop flask-container || true
-                docker rm flask-container || true
-                docker run -d -p 5000:5000 --name flask-container my-flask-app
+                . $VENV_DIR/bin/activate
+                nohup python app.py > flask.log 2>&1 &
                 '''
             }
         }
