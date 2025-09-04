@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        PATH = "/usr/bin:/opt/homebrew/bin:$PATH"
         VENV_DIR = "${WORKSPACE}/venv"
     }
 
@@ -34,9 +35,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                docker build -t my-flask-app .
-                '''
+                sh 'docker build -t my-flask-app .'
             }
         }
 
