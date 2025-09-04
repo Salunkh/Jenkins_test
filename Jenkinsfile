@@ -28,7 +28,7 @@ pipeline {
             steps {
                 sh '''
                 . venv/bin/activate
-                nohup python app.py &
+                nohup python app.py --host=0.0.0.0 --port=5001 &
                 '''
             }
         }
