@@ -26,10 +26,8 @@ pipeline {
         }
         stage('Run Flask App') {
             steps {
-                sh '''
-                . venv/bin/activate
-                nohup python app.py --host=0.0.0.0 --port=5001 &
-                '''
+               sh 'docker build -t my-flask-app .'
+               sh 'docker run -d -p 5001:5001 my-flask-app'
             }
         }
     }
