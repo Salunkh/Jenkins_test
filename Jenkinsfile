@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/<your-username>/<your-flask-repo>.git'
+                git 'https://github.com/Salunkh/Jenkins_test.git'
             }
         }
         stage('Install dependencies') {
