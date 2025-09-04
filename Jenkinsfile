@@ -2,45 +2,66 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_PATH = "/opt/homebrew/bin/docker"  // absolute path to Docker
+        WORKSPACE_DIR = "${env.WORKSPACE}"
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/Salunkh/Jenkins_test.git'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Setup Python Env') {
             steps {
                 sh '''
-                ${DOCKER_PATH} build -t my-flask-app .
+                # Create virtual environment
+                python3 -m venv venv
+
+                # Activate virtualenv
+                source venv/bin/activate
+
+                # Upgrade pip and install dependencies
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                pip install pytest flask
                 '''
             }
         }
 
-        stage('Run Flask in Docker') {
+        stage('Run Tests') {
             steps {
                 sh '''
-                # Stop old container if exists
-                ${DOCKER_PATH} rm -f my-flask-container || true
+                # Activate virtualenv
+                source venv/bin/activate
 
-                # Run new container in detached mode, map port 5000
-                ${DOCKER_PATH} run -d --name my-flask-container -p 5000:5000 my-flask-app
-
-                echo "Flask app is running in Docker container. Access it at http://localhost:5000"
+                # Run tests (optional)
+                pytest || true
                 '''
             }
         }
 
-        stage('Run Tests (Optional)') {
+        stage('Run Flask App') {
             steps {
                 sh '''
-                # Run tests inside Docker container
-                ${DOCKER_PATH} exec my-flask-container pytest || true
+                # Activate virtualenv
+                source venv/bin/activate
+
+                # Stop old Flask process if exists
+                pkill -f "python app.py" || true
+
+                # Run Flask app in background
+                nohup python app.py > flask.log 2>&1 &
+                echo "Flask app started. Access it at http://localhost:5000"
                 '''
             }
+        }
+    }
+
+    post {
+        always {
+            echo "Pipeline finished. Flask logs are in ${WORKSPACE_DIR}/flask.log"
         }
     }
 }
